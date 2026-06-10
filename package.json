@@ -1,0 +1,12 @@
+{
+  "name": "stick-fight-ragdoll",
+  "version": "1.0.0",
+  "description": "A physics-based stickman fighting game with ragdoll, gravity, momentum, recoil and collision simulation. Built with Matter.js.",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve .",
+    "start": "npx serve ."
+  },
+  "keywords": ["game", "physics", "matter-js", "ragdoll", "stickman", "canvas"],
+  "license": "MIT"
+}

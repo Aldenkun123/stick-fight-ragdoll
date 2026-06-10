@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Stick Fight — Ragdoll Physics Arena</title>
+<meta name="description" content="A physics-based stickman fighting game with ragdoll, gravity, momentum, recoil and collision simulation. Built with Matter.js." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥊</text></svg>" />
+<link rel="stylesheet" href="css/style.css" />
+  <link rel="manifest" href="manifest.json" />
+</head>
+<body>
+  <div id="game-wrap">
+    <canvas id="game"></canvas>
+  </div>
+
+  <!-- MAIN MENU -->
+  <div class="overlay" id="menu">
+    <h1 class="title">Stick&nbsp;Fight<small>RAGDOLL PHYSICS ARENA</small></h1>
+    <div class="btn-row">
+      <button class="btn" id="btn-bot">🤖 Bot vs Bot</button>
+      <button class="btn secondary" id="btn-1p">1 Player <span style="opacity:.6">(vs Bot)</span></button>
+      <button class="btn secondary" id="btn-2p">2 Players</button>
+    </div>
+    <div class="mode-row">
+      <span class="mode-label">Team (all bots):</span>
+      <button class="btn mini" id="btn-2v2">2v2</button>
+      <button class="btn mini" id="btn-3v3">3v3</button>
+      <button class="btn mini" id="btn-4v4">4v4</button>
+      <button class="btn mini" id="btn-ffa">⚔️ For All (8)</button>
+      <button class="btn mini" id="btn-koth">👑 KotH</button>
+      <button class="btn mini" id="btn-infection">🧟 Infection</button>
+      <button class="btn mini" id="btn-boss">👹 Boss</button>
+      <button class="btn mini" id="btn-king">👑 King Tournament</button>
+    </div>
+    <div class="arena-row">
+      <button class="btn secondary mini" id="btn-arena-prev">◀</button>
+      <span class="arena-label">Arena: <b id="arena-name">Tower</b> <span id="arena-idx" style="opacity:.5">(1/5)</span></span>
+      <button class="btn secondary mini" id="btn-arena-next">▶</button>
+    </div>
+    <div class="brain-panel">
+      <button class="btn secondary" id="btn-train">🧠 Train AI (Self-Play)</button>
+      <div class="train-opts">
+        <label>Generasi:
+          <select id="train-gens">
+            <option value="30">30</option>
+            <option value="60" selected>60</option>
+            <option value="120">120</option>
+            <option value="200">200</option>
+          </select>
+        </label>
+        <label class="brain-toggle"><input type="checkbox" id="train-turbo" /> Turbo (train ~3× faster)</label>
+      </div>
+      <label class="brain-toggle"><input type="checkbox" id="use-brain" /> Use trained AI for bots</label>
+      <div class="brain-status" id="brain-status">No trained AI yet.</div>
+      <div class="brain-io">
+        <button class="btn secondary mini" id="btn-export">💾 Export Brain</button>
+        <button class="btn secondary mini" id="btn-import">📂 Import Brain</button>
+        <button class="btn secondary mini" id="btn-tournament">🏆 Tournament</button>
+        <button class="btn secondary mini" id="btn-reset">🧹 Reset All AI</button>
+        <input type="file" id="import-file" accept="application/json,.json" hidden />
+      </div>
+    </div>
+    <div class="rank-panel">
+      <div class="rank-title">🏆 Global Points Rank</div>
+      <div id="rank-board"><p class="rank-empty">No data yet &mdash; play a round first!</p></div>
+    </div>
+    <div class="controls-card">
+      <div class="ctrl p1">
+        <h4>Player 1 — Yellow</h4>
+        <ul>
+          <li>Move <b><kbd>A</kbd> <kbd>D</kbd></b></li>
+          <li>Jump <b><kbd>W</kbd></b></li>
+          <li>Down / Drop <b><kbd>S</kbd></b></li>
+          <li>Shoot / Punch <b><kbd>Space</kbd></b></li>
+          <li>Heavy attack <b><kbd>E</kbd></b></li>
+          <li>Block <b><kbd>Q</kbd></b></li>
+          <li>Grab weapon <b><kbd>S</kbd></b></li>
+        </ul>
+      </div>
+      <div class="ctrl p2">
+        <h4>Player 2 — Red</h4>
+        <ul>
+          <li>Move <b><kbd>←</kbd> <kbd>→</kbd></b></li>
+          <li>Jump <b><kbd>↑</kbd></b></li>
+          <li>Down / Drop <b><kbd>↓</kbd></b></li>
+          <li>Shoot / Punch <b><kbd>↵ Enter</kbd></b></li>
+          <li>Heavy attack <b><kbd>⇧ Shift kanan</kbd></b></li>
+          <li>Block <b><kbd>/</kbd></b></li>
+          <li>Grab weapon <b><kbd>↓</kbd></b></li>
+        </ul>
+      </div>
+    </div>
+    <p class="hint">Knock opponents off the arena or drain their health. Weapons rain from the sky — grab and use them! Press <kbd>P</kbd> to pause, <kbd>R</kbd> to restart the round.</p>
+  </div>
+
+  <!-- ROUND / WIN -->
+  <div class="overlay hidden" id="result">
+    <div class="win-name" id="result-text">Player 1 Wins!</div>
+    <div class="btn-row">
+      <button class="btn" id="btn-next">Play Again</button>
+      <button class="btn secondary" id="btn-menu">Menu</button>
+    </div>
+  </div>
+
+  <!-- PAUSE -->
+  <div class="overlay hidden" id="pause">
+    <h1 class="title" style="font-size:clamp(34px,7vw,68px)">Paused</h1>
+    <div class="btn-row">
+      <button class="btn" id="btn-resume">Resume</button>
+      <button class="btn secondary" id="btn-pmenu">Menu</button>
+    </div>
+  </div>
+
+  <!-- TRAINING (neuroevolution self-play) -->
+  <div class="overlay hidden" id="train">
+    <h1 class="title" style="font-size:clamp(28px,5.5vw,56px)">Training AI 🧠<small>NEUROEVOLUTION · SELF-PLAY</small></h1>
+    <div class="train-stats" id="train-stats">Starting…</div>
+    <div class="train-bar"><div class="train-bar-fill" id="train-bar-fill"></div></div>
+    <div class="train-board" id="train-board"></div>
+    <p class="hint">Bots battle each other at high speed. Each generation, the brains (neural networks) with the highest reward score are inherited &amp; mutated — getting smarter over time. Progress is saved automatically in your browser.</p>
+    <div class="btn-row">
+      <button class="btn" id="btn-train-stop">Finish &amp; Save</button>
+    </div>
+  </div>
+
+  <button id="btn-rec" title="Record &amp; download gameplay video (.webm)">⏺ Record</button>
+
+
+  <!-- Physics engine -->
+  <script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
